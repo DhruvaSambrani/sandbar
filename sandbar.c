@@ -49,7 +49,7 @@
 	"	-hidden					bars will initially be hidden\n" \
 	"	-bottom					bars will initially be drawn at the bottom\n" \
 	"	-hide-vacant-tags			do not display empty and inactive tags\n" \
-	"	-no-title				do not display current view title\n" \
+	"	-custom-title				do not display current view title\n" \
 	"	-no-status-commands			disable in-line commands in status text\n" \
 	"	-no-layout				do not display the current layout\n" \
 	"	-no-mode				do not display the current mode\n" \
@@ -130,7 +130,7 @@ static char *fontstr = "monospace:size=16";
 static struct fcft_font *font;
 static uint32_t height, textpadding, vertical_padding = 1, buffer_scale = 1;
 
-static bool hidden, bottom, hide_vacant, no_title, no_status_commands, no_mode, no_layout, hide_normal_mode;
+static bool hidden, bottom, hide_vacant, custom_title, no_status_commands, no_mode, no_layout, hide_normal_mode;
 
 static pixman_color_t active_fg_color = { .red = 0xeeee, .green = 0xeeee, .blue = 0xeeee, .alpha = 0xffff, };
 static pixman_color_t active_bg_color = { .red = 0x0000, .green = 0x5555, .blue = 0x7777, .alpha = 0xffff, };
@@ -442,13 +442,11 @@ draw_frame(Bar *bar)
 		  background, &inactive_fg_color, &inactive_bg_color,
 		  bar->width, bar->height, bar->textpadding, true);
 
-	if (!no_title) {
-		x = draw_text(bar->title, x, y, foreground, background,
-			      bar->sel ? &title_fg_color : &inactive_fg_color,
-			      bar->sel ? &title_bg_color : &inactive_bg_color,
-			      bar->width - status_width, bar->height, bar->textpadding,
-			      false);
-	}
+    x = draw_text(bar->title, x, y, foreground, background,
+                bar->sel ? &title_fg_color : &inactive_fg_color,
+                bar->sel ? &title_bg_color : &inactive_bg_color,
+                bar->width - status_width, bar->height, bar->textpadding,
+                false);
 
 	pixman_image_fill_boxes(PIXMAN_OP_SRC, background,
 				bar->sel ? &title_bg_color : &title_bg_color, 1,
@@ -862,7 +860,7 @@ static void
 river_seat_status_focused_view(void *data, struct zriver_seat_status_v1 *seat_status,
 			       const char *title)
 {
-	if (no_title)
+	if (custom_title)
 		return;
 	
 	Seat *seat = (Seat *)data;
@@ -1068,6 +1066,15 @@ set_status(Bar *bar, char *data)
 		EDIE("strdup");
 	bar->redraw = true;
 }
+static void
+set_title(Bar *bar, char *data)
+{
+	if (bar->title)
+		free(bar->title);
+	if (!(bar->title = strdup(data)))
+		EDIE("strdup");
+	bar->redraw = true;
+}
 
 static void
 set_visible(Bar *bar, char *data)
@@ -1183,6 +1190,10 @@ read_fd(int fd)
 			if (!*wordend)
 				continue;
 			func = request_resize;
+        } else if (!strcmp(wordbeg, "title")) {
+			if (!*wordend)
+				continue;
+			func = set_title;
 		} else if (!strcmp(wordbeg, "show")) {
 			func = set_visible;
 		} else if (!strcmp(wordbeg, "hide")) {
@@ -1400,8 +1411,8 @@ main(int argc, char **argv)
 			bottom = true;
 		} else if (!strcmp(argv[i], "-hidden")) {
 			hidden = true;
-		} else if (!strcmp(argv[i], "-no-title")) {
-			no_title = true;
+		} else if (!strcmp(argv[i], "-custom-title")) {
+			custom_title = true;
 		} else if (!strcmp(argv[i], "-no-status-commands")) {
 			no_status_commands = true;
 		} else if (!strcmp(argv[i], "-no-mode")) {
@@ -1466,7 +1477,7 @@ main(int argc, char **argv)
 			if (++i + 1 >= argc)
 				DIE("Option -tags requires at least two arguments");
 			int v;
-			if ((v = atoi(argv[i])) <= 0 || i + v >= argc)
+			if ((v = atoi(argv[i])) < 0 || i + v >= argc)
 				DIE("-tags: invalid arguments");
 			if (tags) {
 				for (uint32_t j = 0; j < tags_l; j++)
@@ -1479,7 +1490,7 @@ main(int argc, char **argv)
 				if (!(tags[j] = strdup(argv[i + 1 + j])))
 					EDIE("strdup");
 			tags_l = v;
-			i += v;
+			i += v == 0 ? 1 : v;
 		} else if (!strcmp(argv[i], "-no-systray")){
             systray_enabled = false;
         } else if (!strcmp(argv[i], "-v")) {
