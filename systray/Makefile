@@ -21,6 +21,9 @@ clean:
 install: all
 	install -Dm755 $(PROGNAME) $(PREFIX)/bin/$(PROGNAME)
 
+uninstall:
+	rm $(PREFIX)/bin/$(PROGNAME)
+
 $(PROGNAME): $(OBJS)
 	$(CC) $(DEPLIBS) $(LDFLAGS) -o $(PROGNAME) $(OBJS)
 

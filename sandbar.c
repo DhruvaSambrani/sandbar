@@ -1432,7 +1432,7 @@ main(int argc, char **argv)
 		} else if (!strcmp(argv[i], "-scale")) {
 			if (++i >= argc)
 				DIE("Option -scale requires an argument");
-			buffer_scale = strtoul(argv[i], &argv[i] + strlen(argv[i]), 10);
+			buffer_scale = strtoul(argv[i], &argv[i] + strlen(argv[i]), 10) + 1;
 		} else if (!strcmp(argv[i], "-active-fg-color")) {
 			if (++i >= argc)
 				DIE("Option -active-fg-color requires an argument");

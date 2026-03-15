@@ -13,6 +13,10 @@ install: all
 	install -D -t $(DESTDIR)$(PREFIX)/bin $(BINS)
 	$(MAKE) install -C systray
 
+uninstall:
+	rm $(DESTDIR)$(PREFIX)/bin/$(BINS)
+	$(MAKE) uninstall -C systray
+
 WAYLAND_PROTOCOLS=$(shell pkg-config --variable=pkgdatadir wayland-protocols)
 WAYLAND_SCANNER=$(shell pkg-config --variable=wayland_scanner wayland-scanner)
 
